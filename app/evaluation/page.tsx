@@ -1,5 +1,5 @@
 import { Ring } from '../../components/Ring'
-import { getEval, getPages } from '../../lib/workspace'
+import { getCompiledAt, getEval, getPages } from '../../lib/workspace'
 import { formatDateTime } from '../../lib/display'
 
 export const dynamic = 'force-dynamic'
@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic'
 export default function EvaluationPage() {
   const report = getEval()
   const pages = getPages()
+  const compiledAt = getCompiledAt()
   const passed = report.cases.filter(item => item.status === 'pass').length
 
   return (
@@ -53,6 +54,9 @@ export default function EvaluationPage() {
               ))}
             </div>
           </div>
+          <p className="panel-hint" style={{ padding: '0 18px 14px', lineHeight: 1.8 }}>
+            检索命中、证据覆盖只统计 10 道可检索题；2 道「应拒答」题只计入诚实作答。这里评的是检索与引用链路，不评判模型文风。
+          </p>
         </div>
 
         <div className="panel">
@@ -77,6 +81,14 @@ export default function EvaluationPage() {
             <div className="kv">
               <span>总分</span>
               <b>{report.score}</b>
+            </div>
+            <div className="kv">
+              <span>报告基于编译</span>
+              <b>{formatDateTime(compiledAt)}</b>
+            </div>
+            <div className="kv">
+              <span>报告生成</span>
+              <b>{formatDateTime(report.generatedAt)}</b>
             </div>
           </div>
         </div>

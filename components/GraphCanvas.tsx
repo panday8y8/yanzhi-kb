@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -30,8 +30,6 @@ type DragState =
   | { type: 'pan'; start: Point; origin: Point }
   | { type: 'node'; id: string; start: Point; base: Point }
 
-type KindFilter = 'all' | 'PAGE' | 'SOURCE'
-
 const DOMAINS_ORDER: Domain[] = ['engineering', 'manufacturing', 'quality', 'supply', 'security', 'people']
 const MIN_ZOOM = 0.4
 const MAX_ZOOM = 3
@@ -52,7 +50,6 @@ function clamp(value: number, min: number, max: number) {
 
 export function GraphCanvas({ nodes, edges, clusters }: Props) {
   const [domain, setDomain] = useState<Domain | 'all'>('all')
-  const [kind, setKind] = useState<KindFilter>('all')
   const [query, setQuery] = useState('')
   const [hovered, setHovered] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
@@ -80,11 +77,12 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
 
   const baseVisible = useMemo(() => {
     return nodes.filter(node => {
-      if (domain !== 'all' && node.kind !== 'TYPE' && node.kind !== 'DOMAIN' && node.domain !== domain) return false
-      if (kind !== 'all' && node.kind !== kind) return false
+      if (node.kind === 'TYPE') return domain === 'all'
+      if (node.kind === 'DOMAIN') return domain === 'all' || node.domain === domain
+      if (domain !== 'all' && node.domain !== domain) return false
       return true
     })
-  }, [nodes, domain, kind])
+  }, [nodes, domain])
 
   const focusSet = useMemo(() => {
     if (!focusId) return null
@@ -167,12 +165,17 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
 
   const selectNode = useCallback(
     (id: string, center = false) => {
+      const node = nodeById.get(id)
+      if (node?.domain && domain !== 'all' && node.domain !== domain) {
+        setDomain('all')
+        setFocusId(null)
+      }
       setSelected(id)
       setQuery('')
       setShowMatches(false)
       if (center) centerOn(id)
     },
-    [centerOn],
+    [centerOn, nodeById, domain],
   )
 
   const zoomBy = useCallback((factor: number, anchor?: Point) => {
@@ -220,11 +223,15 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
   const fitRef = useRef(fitView)
   fitRef.current = fitView
 
+  const fitKeyRef = useRef('')
   useEffect(() => {
-    if (!focusId) return
+    const key = `${domain}|${focusId ?? ''}`
+    if (fitKeyRef.current === key) return
+    fitKeyRef.current = key
+    if (domain === 'all' && !focusId) return
     const timer = setTimeout(() => fitRef.current(), 40)
     return () => clearTimeout(timer)
-  }, [focusId])
+  }, [domain, focusId])
   const toggleFocus = useCallback((id: string) => {
     setFocusId(current => (current === id ? null : id))
     setSelected(id)
@@ -411,6 +418,17 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
             )}
           </div>
           <div className="legend">
+            <button
+              type="button"
+              className="suggestion"
+              style={domain === 'all' ? { color: 'var(--seal)', borderColor: 'var(--seal)' } : undefined}
+              onClick={() => {
+                setDomain('all')
+                setFocusId(null)
+              }}
+            >
+              全部
+            </button>
             {DOMAINS_ORDER.map(item => (
               <button
                 key={item}
@@ -435,22 +453,6 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
 
         <div className="graph-row graph-row-secondary">
           <div className="legend">
-            <span className="legend-item">类型</span>
-            {([
-              ['all', '全部'],
-              ['PAGE', '知识页'],
-              ['SOURCE', '资料'],
-            ] as const).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                className="suggestion"
-                style={kind === value ? { color: 'var(--seal)', borderColor: 'var(--seal)' } : undefined}
-                onClick={() => setKind(value)}
-              >
-                {label}
-              </button>
-            ))}
             <span className="legend-item">
               <span className="legend-dot" style={{ color: DOMAIN_COLOR.engineering, background: 'transparent' }} />
               知识页
@@ -690,5 +692,6 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
     </div>
   )
 }
+
 
 

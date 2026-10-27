@@ -12,6 +12,8 @@ export default function GraphPage() {
   const sourceNodes = graph.nodes.filter(node => node.kind === 'SOURCE')
   const links = graph.edges.filter(edge => edge.relation === 'LINKS_TO').length
   const cites = graph.edges.filter(edge => edge.relation === 'CITES').length
+  const visibleEdges = graph.edges.filter(edge => edge.relation !== 'OF_TYPE').length
+  const typeEdges = graph.edges.length - visibleEdges
   void getModelConfig()
 
   return (
@@ -35,8 +37,11 @@ export default function GraphPage() {
             <div style={{ fontFamily: 'var(--serif)', fontSize: 28 }}>{graph.nodes.length}</div>
           </div>
           <div>
-            <div className="kicker">关系</div>
-            <div style={{ fontFamily: 'var(--serif)', fontSize: 28 }}>{graph.edges.length}</div>
+            <div className="kicker">关系（画布展示）</div>
+            <div style={{ fontFamily: 'var(--serif)', fontSize: 28 }}>{visibleEdges}</div>
+            <div className="muted" style={{ fontSize: 10.5 }}>
+              总 {graph.edges.length} · 类型边 {typeEdges} 已隐藏
+            </div>
           </div>
           <div>
             <div className="kicker">内链 / 引用</div>

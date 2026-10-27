@@ -31,13 +31,31 @@ export function ensureWorkspace(): void {
   booted = true
 }
 
-export function recompile(): { pages: number; sources: number; chunks: number; citations: number } {
+/** 重跑评估并落盘，保证报告与编译产物同版本。 */
+function persistEval(): EvalReport {
+  const report = runEval(loadChunks())
+  const dir = path.join(ROOT, 'output', 'eval')
+  fs.mkdirSync(dir, { recursive: true })
+  fs.writeFileSync(path.join(dir, 'report.json'), JSON.stringify(report, null, 2))
+  setMeta('eval:latest', JSON.stringify(report))
+  setMeta('eval:compiled_at', readCompiledPages(ROOT).compiledAt)
+  return report
+}
+
+export function recompile(): { pages: number; sources: number; chunks: number; citations: number; score: number } {
   const { manifest } = compileAll(ROOT, readGlossary())
   const docs = loadRawDocs(path.join(ROOT, 'content', 'raw'))
   const pages = readCompiledPages(ROOT).pages
   const index = syncIndex(pages, docs, manifest.compiledAt)
+  const report = persistEval()
   booted = true
-  return { pages: manifest.pages, sources: manifest.sources, chunks: index.chunks, citations: manifest.citations }
+  return {
+    pages: manifest.pages,
+    sources: manifest.sources,
+    chunks: index.chunks,
+    citations: manifest.citations,
+    score: report.score,
+  }
 }
 
 export function getManifest(): WikiManifest {
@@ -64,17 +82,17 @@ export function getGraph(): GraphData {
 
 export function getEval(): EvalReport {
   ensureWorkspace()
+  const compiledAt = readCompiledPages(ROOT).compiledAt
+  const stamp = getMeta('eval:compiled_at')
   const cached = getMeta('eval:latest')
-  if (cached) {
+  if (cached && stamp === compiledAt) {
     try {
       return JSON.parse(cached) as EvalReport
     } catch {
       /* 缓存损坏时重算 */
     }
   }
-  const report = runEval(loadChunks())
-  setMeta('eval:latest', JSON.stringify(report))
-  return report
+  return persistEval()
 }
 
 export interface DomainStat {

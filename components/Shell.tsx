@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
+import { formatDateTime } from '../lib/display'
 import {
   IconBook,
   IconChat,
@@ -155,7 +156,7 @@ export function Shell({ children, pages, meta }: ShellProps) {
             <span className={meta.modelConfigured ? 'status-dot' : 'status-dot warn'} />
           </div>
           <div className="foot-line">
-            <span style={{ fontSize: 10, letterSpacing: '.08em' }}>{meta.compiledAt.slice(0, 16).replace('T', ' ')}</span>
+            <span style={{ fontSize: 10, letterSpacing: '.08em' }}>{formatDateTime(meta.compiledAt)}</span>
           </div>
         </div>
       </aside>
@@ -222,6 +223,7 @@ export function Shell({ children, pages, meta }: ShellProps) {
     </div>
   )
 }
+
 
 
 
