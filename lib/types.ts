@@ -1,4 +1,4 @@
-export const DOMAINS = ['engineering', 'manufacturing', 'quality', 'supply', 'security', 'people'] as const
+﻿export const DOMAINS = ['engineering', 'manufacturing', 'quality', 'supply', 'security', 'people'] as const
 export type Domain = (typeof DOMAINS)[number]
 
 export const PAGE_TYPES = ['policy', 'system', 'playbook', 'concept'] as const
@@ -150,6 +150,7 @@ export interface EvalCase {
   question: string
   expectPages: string[]
   keywords: string[]
+  minPages?: number
   kind: 'answer' | 'no_evidence'
 }
 
@@ -159,8 +160,11 @@ export interface EvalCaseResult {
   status: 'pass' | 'fail'
   retrievalHit: boolean | null
   citationValid: boolean
+  citationCoverage: boolean | null
+  answerKeywords: boolean | null
   evidenceCoverage: boolean | null
   answerHonest: boolean
+  citedPages: string[]
   score: number
   topPages: string[]
   notes: string[]
@@ -174,3 +178,4 @@ export interface EvalReport {
   metrics: Record<string, { label: string; value: number | null; n: number }>
   cases: EvalCaseResult[]
 }
+

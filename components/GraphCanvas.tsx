@@ -36,6 +36,7 @@ const MAX_ZOOM = 3
 const DRAG_THRESHOLD = 3
 const VIEW_W = 1080
 const VIEW_H = 660
+const LAYOUT_KEY = 'yanzhi.graph.layout.v1'
 
 const RELATION_NAME: Record<GraphEdge['relation'], string> = {
   LINKS_TO: '内链',
@@ -67,6 +68,33 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
   const movedRef = useRef(0)
   const pinchRef = useRef<{ distance: number; k: number; anchor: Point } | null>(null)
   const pointersRef = useRef(new Map<number, Point>())
+  const layoutLoaded = useRef(false)
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(LAYOUT_KEY)
+      if (raw) {
+        const saved = JSON.parse(raw) as { positions?: Record<string, Point>; pinned?: Record<string, boolean> }
+        if (saved.positions) setPositions(saved.positions)
+        if (saved.pinned) setPinned(saved.pinned)
+      }
+    } catch {
+      /* 本地布局损坏时忽略 */
+    }
+    layoutLoaded.current = true
+  }, [])
+
+  useEffect(() => {
+    if (!layoutLoaded.current) return
+    const timer = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(LAYOUT_KEY, JSON.stringify({ positions, pinned }))
+      } catch {
+        /* 存储不可用时忽略 */
+      }
+    }, 200)
+    return () => window.clearTimeout(timer)
+  }, [positions, pinned])
 
   const nodeById = useMemo(() => new Map(nodes.map(node => [node.id, node])), [nodes])
 
@@ -124,6 +152,22 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
   }, [hovered, selected, visible.edges])
 
   const selectedNode = selected ? nodeById.get(selected) ?? null : null
+
+  const lodNodes = useMemo(() => {
+    return visible.nodes.filter(node => {
+      if (node.kind === 'DOMAIN' || node.kind === 'TYPE') return true
+      if (node.id === selected || node.id === hovered || node.id === focusId) return true
+      if (view.k >= 1) return true
+      if (view.k >= 0.7) return node.kind === 'PAGE' || node.degree >= 2
+      return node.degree >= 5
+    })
+  }, [visible.nodes, view.k, selected, hovered, focusId])
+
+  const lodIds = useMemo(() => new Set(lodNodes.map(node => node.id)), [lodNodes])
+  const lodEdges = useMemo(
+    () => visible.edges.filter(edge => lodIds.has(edge.source) && lodIds.has(edge.target)),
+    [visible.edges, lodIds],
+  )
 
   const neighbors = useMemo(() => {
     if (!selected) return []
@@ -215,6 +259,11 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
     setView({ x: 0, y: 0, k: 1 })
     setPositions({})
     setPinned({})
+    try {
+      window.localStorage.removeItem(LAYOUT_KEY)
+    } catch {
+      /* ignore */
+    }
     setSelected(null)
     setFocusId(null)
     setQuery('')
@@ -470,7 +519,7 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
               引用 / 归属
             </span>
             <span className="mono" style={{ fontSize: 11, color: 'var(--ink-4)' }}>
-              {visible.nodes.length} 节点 / {visible.edges.length} 边
+              {lodNodes.length} 节点 / {lodEdges.length} 边
             </span>
             {focusId && (
               <span className="graph-focus-chip">
@@ -510,7 +559,7 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
 
         <g transform={`translate(${view.x} ${view.y}) scale(${view.k})`}>
           {clusters.map(cluster => {
-            const count = visible.nodes.filter(node => node.kind !== 'TYPE' && node.domain === cluster.domain).length
+            const count = lodNodes.filter(node => node.kind !== 'TYPE' && node.domain === cluster.domain).length
             if (!count) return null
             return (
               <g key={cluster.domain}>
@@ -528,7 +577,7 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
             )
           })}
 
-          {visible.edges.map((edge, index) => {
+          {lodEdges.map((edge, index) => {
             const from = nodeById.get(edge.source)
             const to = nodeById.get(edge.target)
             if (!from || !to) return null
@@ -551,7 +600,7 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
             )
           })}
 
-          {visible.nodes.map(node => {
+          {lodNodes.map(node => {
             const dim = neighborIds ? !neighborIds.has(node.id) : false
             const color = node.domain ? DOMAIN_COLOR[node.domain] : 'var(--ink-3)'
             const point = positionOf(node)

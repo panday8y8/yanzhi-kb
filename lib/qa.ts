@@ -137,9 +137,39 @@ function sentenceOf(text: string, max = 120): string {
   return value.length > max ? `${value.slice(0, max)}…` : value
 }
 
+function questionOverlap(text: string, question: string): number {
+  const q = question.replace(/\s+/g, '')
+  if (q.length < 4) return 0
+  const grams = new Set<string>()
+  for (let i = 0; i < q.length - 1; i++) grams.add(q.slice(i, i + 2))
+  let hit = 0
+  for (const gram of grams) if (text.includes(gram)) hit++
+  return hit
+}
+
 /** 无凭证或调用失败时的降级答案：直接摘录证据，绝不伪装成模型生成。 */
-export function localAnswer(evidence: EvidenceItem[], reason: string): string {
-  const lines = evidence.slice(0, 3).map(item => `- ${sentenceOf(item.text)} [${item.n}]（${item.pageTitle} · ${item.section}）`)
+export function localAnswer(evidence: EvidenceItem[], reason: string, question = ''): string {
+  // 先按知识页去重取每条证据，避免三条摘录都来自同一页、丢掉跨页信息；
+  // 再从首条证据所在页补一条，保证同一页里的关键小节不被漏掉。
+  const picked: EvidenceItem[] = []
+  const seen = new Set<string>()
+  for (const item of evidence) {
+    if (seen.has(item.pageTitle)) continue
+    picked.push(item)
+    seen.add(item.pageTitle)
+    if (picked.length >= 3) break
+  }
+  if (picked.length) {
+    const samePage = evidence
+      .filter(item => !picked.includes(item) && item.pageTitle === picked[0].pageTitle)
+      .sort((a, b) => questionOverlap(b.text, question) - questionOverlap(a.text, question))
+    for (const item of samePage.slice(0, 2)) picked.push(item)
+  }
+  for (const item of evidence) {
+    if (picked.length >= 5) break
+    if (!picked.includes(item)) picked.push(item)
+  }
+  const lines = picked.slice(0, 5).map(item => `- ${sentenceOf(item.text)} [${item.n}]（${item.pageTitle} · ${item.section}）`)
   return [
     '本地检索结果（未经过模型改写）：',
     ...lines,
@@ -166,7 +196,7 @@ export async function ask(request: AskRequest, hooks: AskHooks = {}): Promise<As
   const question = request.question.trim()
   const config = getModelConfig()
   const chunks = loadChunks()
-  const ranked = search(question, chunks, { limit: 4 })
+  const ranked = search(question, chunks, { limit: 6 })
   const usable = ranked.filter(hit => hit.score >= NO_EVIDENCE_THRESHOLD)
   const evidence = toEvidence(usable, 10)
   const topScore = usable[0]?.score ?? 0
@@ -195,7 +225,7 @@ export async function ask(request: AskRequest, hooks: AskHooks = {}): Promise<As
   hooks.onEvidence?.(evidence, { status, confidence, mode, model })
 
   if (mode === 'local') {
-    const answer = localAnswer(evidence, '当前未配置 DEEPSEEK_API_KEY')
+    const answer = localAnswer(evidence, '当前未配置 DEEPSEEK_API_KEY', question)
     hooks.onDelta?.(answer)
     return {
       status,
@@ -246,7 +276,7 @@ export async function ask(request: AskRequest, hooks: AskHooks = {}): Promise<As
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    const answer = localAnswer(evidence, `模型调用失败：${message.slice(0, 80)}`)
+    const answer = localAnswer(evidence, `模型调用失败：${message.slice(0, 80)}`, question)
     hooks.onDelta?.(answer)
     return {
       status,
@@ -302,4 +332,5 @@ export async function testModel(model?: string): Promise<{ ok: boolean; model: s
     }
   }
 }
+
 

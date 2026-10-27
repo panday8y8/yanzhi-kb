@@ -1,4 +1,4 @@
-import { Ring } from '../../components/Ring'
+﻿import { Ring } from '../../components/Ring'
 import { getCompiledAt, getEval, getPages } from '../../lib/workspace'
 import { formatDateTime } from '../../lib/display'
 
@@ -72,7 +72,7 @@ export default function EvaluationPage() {
                 在项目根目录执行 <code className="mono">pnpm kb:eval</code>，会给 12 道题逐条打分，把报告写到{' '}
                 <code className="mono">output/eval/report.json</code>。
               </p>
-              <p>判定口径：检索命中（期望知识页进入前三）、证据覆盖（关键词齐全）、引用有效（编号不越界）、诚实作答（无证据题不硬答）。</p>
+              <p>判定口径：检索命中（期望知识页进入前三）；证据覆盖（证据关键词齐全，且答案至少包含一个关键词）；引用有效（编号不越界，且引用覆盖规定数量的期望页）；诚实作答（无证据题不硬答）。</p>
             </div>
             <div className="kv" style={{ marginTop: 8 }}>
               <span>通过题数</span>
@@ -134,3 +134,4 @@ export default function EvaluationPage() {
     </main>
   )
 }
+

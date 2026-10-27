@@ -9,6 +9,7 @@ export const EVAL_CASES: EvalCase[] = [
     question: '北辰平台的版本发布要过哪几道门禁？',
     expectPages: ['发布门禁', '变更管理'],
     keywords: ['门禁', '评审', '扫描'],
+    minPages: 2,
     kind: 'answer',
   },
   {
@@ -16,6 +17,7 @@ export const EVAL_CASES: EvalCase[] = [
     question: '灰度发布批次怎么推进？出问题多久必须回滚？',
     expectPages: ['灰度批次', '发布门禁'],
     keywords: ['灰度', '回滚', '15'],
+    minPages: 2,
     kind: 'answer',
   },
   {
@@ -23,6 +25,7 @@ export const EVAL_CASES: EvalCase[] = [
     question: '产线换型后首件怎么确认？',
     expectPages: ['首件确认', '换型效率'],
     keywords: ['首件', '三检', '换型'],
+    minPages: 2,
     kind: 'answer',
   },
   {
@@ -30,6 +33,7 @@ export const EVAL_CASES: EvalCase[] = [
     question: 'OEE 的统计口径由哪三部分组成？',
     expectPages: ['指标口径', '设备可用率'],
     keywords: ['可用率', '性能率', '良品率'],
+    minPages: 1,
     kind: 'answer',
   },
   {
@@ -37,6 +41,7 @@ export const EVAL_CASES: EvalCase[] = [
     question: '不合格品如何分级和处置？',
     expectPages: ['不合格品处置', '纠正措施'],
     keywords: ['不合格', '隔离', '8D'],
+    minPages: 1,
     kind: 'answer',
   },
   {
@@ -44,6 +49,7 @@ export const EVAL_CASES: EvalCase[] = [
     question: '新供应商准入要走哪些步骤？',
     expectPages: ['供应商准入', '现场审核'],
     keywords: ['准入', '现场审核', '样件'],
+    minPages: 2,
     kind: 'answer',
   },
   {
@@ -51,6 +57,7 @@ export const EVAL_CASES: EvalCase[] = [
     question: '缺料分几级？各级的响应时限是多少？',
     expectPages: ['缺料响应', '安全库存'],
     keywords: ['缺料', '响应', '小时'],
+    minPages: 2,
     kind: 'answer',
   },
   {
@@ -58,6 +65,7 @@ export const EVAL_CASES: EvalCase[] = [
     question: '秘密级数据允许留存多久？外部共享要谁审批？',
     expectPages: ['数据留存', '数据分级'],
     keywords: ['留存', '7 年', '审批'],
+    minPages: 2,
     kind: 'answer',
   },
   {
@@ -65,6 +73,7 @@ export const EVAL_CASES: EvalCase[] = [
     question: 'P0 级安全事件要在多久内响应、多久内止损？',
     expectPages: ['事件响应', '事故复盘'],
     keywords: ['P0', '15 分钟', '止损'],
+    minPages: 1,
     kind: 'answer',
   },
   {
@@ -72,6 +81,7 @@ export const EVAL_CASES: EvalCase[] = [
     question: '新员工入职 30 天内要完成哪些认证？',
     expectPages: ['入职流程', '上岗认证', '培训认证'],
     keywords: ['入职', '认证', '试用期'],
+    minPages: 2,
     kind: 'answer',
   },
   {
@@ -104,7 +114,7 @@ export function runEval(chunks: Chunk[], cases: EvalCase[] = EVAL_CASES): EvalRe
   const results: EvalCaseResult[] = []
 
   for (const item of cases) {
-    const hits = search(item.question, chunks, { limit: 4 })
+    const hits = search(item.question, chunks, { limit: 6 })
     const usable = hits.filter(hit => hit.score >= NO_EVIDENCE_THRESHOLD)
     const evidence = toEvidence(usable, 10)
     const topPages = distinctTitles(hits)
@@ -128,6 +138,15 @@ export function runEval(chunks: Chunk[], cases: EvalCase[] = EVAL_CASES): EvalRe
       }
     }
 
+    let answer = ''
+    let cited: number[] = []
+    let citedPages: string[] = []
+    if (item.kind === 'answer' && hasEvidence) {
+      answer = localAnswer(evidence, '评估专用：本地摘录', item.question)
+      cited = (answer.match(/\[(\d+)\]/g) ?? []).map(token => Number(token.slice(1, -1)))
+      citedPages = [...new Set(cited.map(n => evidence[n - 1]?.pageTitle).filter((title): title is string => Boolean(title)))]
+    }
+
     let answerHonest: boolean
     if (item.kind === 'answer') {
       answerHonest = hasEvidence
@@ -139,15 +158,30 @@ export function runEval(chunks: Chunk[], cases: EvalCase[] = EVAL_CASES): EvalRe
 
     let citationValid = true
     if (item.kind === 'answer' && hasEvidence) {
-      const answer = localAnswer(evidence, '评估专用：本地摘录')
-      const cited = (answer.match(/\[(\d+)\]/g) ?? []).map(token => Number(token.slice(1, -1)))
       citationValid = cited.length > 0 && cited.every(n => n >= 1 && n <= evidence.length)
       if (!citationValid) notes.push('引用编号越界或缺失')
+    }
+
+    let citationCoverage: boolean | null = null
+    if (item.kind === 'answer' && hasEvidence && item.minPages) {
+      const hitCount = citedPages.filter(page => item.expectPages.includes(page)).length
+      citationCoverage = hitCount >= item.minPages
+      if (!citationCoverage) {
+        notes.push(`引用覆盖不足：期望至少 ${item.minPages} 个期望页，实际引用 ${citedPages.join(' / ') || '无'}`)
+      }
+    }
+
+    let answerKeywords: boolean | null = null
+    if (item.kind === 'answer' && hasEvidence) {
+      answerKeywords = item.keywords.length === 0 || item.keywords.some(keyword => answer.includes(keyword))
+      if (!answerKeywords) notes.push(`答案未包含关键词：${item.keywords.join('、')}`)
     }
 
     const checks: boolean[] = [answerHonest, citationValid]
     if (retrievalHit !== null) checks.push(retrievalHit)
     if (evidenceCoverage !== null) checks.push(evidenceCoverage)
+    if (citationCoverage !== null) checks.push(citationCoverage)
+    if (answerKeywords !== null) checks.push(answerKeywords)
     const score = Math.round((checks.filter(Boolean).length / checks.length) * 100)
 
     results.push({
@@ -156,10 +190,13 @@ export function runEval(chunks: Chunk[], cases: EvalCase[] = EVAL_CASES): EvalRe
       status: score === 100 ? 'pass' : 'fail',
       retrievalHit,
       citationValid,
+      citationCoverage,
       evidenceCoverage,
       answerHonest,
+      answerKeywords,
       score,
       topPages,
+      citedPages,
       notes,
     })
   }
@@ -175,8 +212,14 @@ export function runEval(chunks: Chunk[], cases: EvalCase[] = EVAL_CASES): EvalRe
 
   const metrics = {
     retrieval_hit: metric('检索命中', results.map(result => result.retrievalHit)),
-    evidence_coverage: metric('证据覆盖', results.map(result => result.evidenceCoverage)),
-    citation_valid: metric('引用有效', results.map(result => result.citationValid)),
+    evidence_coverage: metric(
+      '证据覆盖',
+      results.map(result => (result.evidenceCoverage === null ? null : result.evidenceCoverage && result.answerKeywords === true)),
+    ),
+    citation_valid: metric(
+      '引用有效',
+      results.map(result => (result.citationCoverage === null ? result.citationValid : result.citationValid && result.citationCoverage)),
+    ),
     answer_honest: metric('诚实作答', results.map(result => result.answerHonest)),
   }
   const values = Object.values(metrics)
@@ -193,5 +236,7 @@ export function runEval(chunks: Chunk[], cases: EvalCase[] = EVAL_CASES): EvalRe
     cases: results,
   }
 }
+
+
 
 
