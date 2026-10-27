@@ -1547,17 +1547,47 @@ html[data-theme="dark"] .outline-link.active {
   width: 100%;
   height: min(63vh, 640px);
   touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+
+.graph-svg.dragging {
+  cursor: grabbing;
+}
+
+.graph-hint {
+  font-size: 11px;
+  color: var(--ink-4);
+  letter-spacing: .02em;
+}
+
+.graph-zoom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.graph-zoom .icon-btn {
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+  line-height: 1;
 }
 
 .graph-node {
-  cursor: pointer;
+  cursor: grab;
   transition: opacity 160ms ease;
+}
+
+.graph-svg.dragging .graph-node {
+  cursor: grabbing;
 }
 
 .graph-node text {
   font-family: var(--sans);
   fill: var(--ink-2);
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: inherit;
 }
 
 .graph-detail {
