@@ -62,6 +62,7 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
   const [pinned, setPinned] = useState<Record<string, boolean>>({})
   const [dragging, setDragging] = useState(false)
   const [showMatches, setShowMatches] = useState(false)
+  const [showHint, setShowHint] = useState(true)
 
   const svgRef = useRef<SVGSVGElement | null>(null)
   const searchRef = useRef<HTMLInputElement | null>(null)
@@ -232,6 +233,7 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
   const handlePointerDown = useCallback(
     (event: React.PointerEvent<SVGSVGElement>) => {
       if (event.button !== 0 && event.pointerType === 'mouse') return
+      setShowHint(false)
       pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
 
       if (pointersRef.current.size === 2) {
@@ -586,6 +588,7 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
             if (node.kind === 'DOMAIN') {
               return (
                 <g key={node.id} {...common}>
+                  <circle cx={point.x} cy={point.y} r={26} fill="transparent" />
                   <circle cx={point.x} cy={point.y} r={19} fill={color} fillOpacity={0.14} stroke={isSelected ? 'var(--seal)' : color} strokeOpacity={isSelected ? 1 : 0.4} />
                   <text x={point.x} y={point.y + 4} textAnchor="middle" fontSize={11} fill={color} style={{ fontWeight: 600 }}>
                     {node.name}
@@ -596,6 +599,7 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
             if (node.kind === 'SOURCE') {
               return (
                 <g key={node.id} {...common}>
+                  <circle cx={point.x} cy={point.y} r={10} fill="transparent" />
                   <rect x={point.x - 3.4} y={point.y - 3.4} width={6.8} height={6.8} rx={1.6} fill={color} fillOpacity={0.7} stroke="var(--panel)" />
                   {isMatch && <circle cx={point.x} cy={point.y} r={9} fill="none" stroke="var(--seal)" strokeDasharray="2 2" />}
                 </g>
@@ -604,6 +608,7 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
             const radius = 4 + Math.min(6, node.degree * 0.32)
             return (
               <g key={node.id} {...common}>
+                <circle cx={point.x} cy={point.y} r={radius + 12} fill="transparent" />
                 <circle cx={point.x} cy={point.y} r={radius + 4} fill={color} fillOpacity={0.08} />
                 <circle
                   cx={point.x}
@@ -628,6 +633,13 @@ export function GraphCanvas({ nodes, edges, clusters }: Props) {
           })}
         </g>
       </svg>
+
+      {showHint && (
+        <div className="graph-onboard">
+          <span>拖动空白平移 · 滚轮缩放 · 点节点看详情</span>
+          <button type="button" onClick={() => setShowHint(false)}>知道了</button>
+        </div>
+      )}
 
       {selectedNode && (
         <div className="graph-detail">
