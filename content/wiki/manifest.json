@@ -1,0 +1,185 @@
+{
+  "compiledAt": "2026-10-27T02:37:51.781Z",
+  "pages": 27,
+  "sources": 12,
+  "citations": 79,
+  "links": 69,
+  "domains": [
+    {
+      "domain": "engineering",
+      "pages": 5
+    },
+    {
+      "domain": "manufacturing",
+      "pages": 4
+    },
+    {
+      "domain": "quality",
+      "pages": 4
+    },
+    {
+      "domain": "supply",
+      "pages": 5
+    },
+    {
+      "domain": "security",
+      "pages": 4
+    },
+    {
+      "domain": "people",
+      "pages": 5
+    }
+  ],
+  "types": [
+    {
+      "type": "policy",
+      "pages": 9
+    },
+    {
+      "type": "system",
+      "pages": 3
+    },
+    {
+      "type": "playbook",
+      "pages": 10
+    },
+    {
+      "type": "concept",
+      "pages": 5
+    }
+  ],
+  "sourceDocs": [
+    {
+      "docId": "eng-architecture",
+      "title": "北辰平台分层架构与数据留存设计",
+      "domain": "engineering",
+      "topics": [
+        "微服务边界",
+        "数据留存",
+        "网关治理"
+      ],
+      "sections": 5
+    },
+    {
+      "docId": "eng-release",
+      "title": "北辰平台版本发布门禁与灰度规则",
+      "domain": "engineering",
+      "topics": [
+        "变更管理",
+        "发布门禁",
+        "灰度批次"
+      ],
+      "sections": 5
+    },
+    {
+      "docId": "hr-onboarding",
+      "title": "新员工 30 天入职与上岗认证",
+      "domain": "people",
+      "topics": [
+        "入职流程",
+        "上岗认证",
+        "培训认证"
+      ],
+      "sections": 5
+    },
+    {
+      "docId": "hr-skill",
+      "title": "技能矩阵与多能工培养",
+      "domain": "people",
+      "topics": [
+        "技能矩阵",
+        "培训认证",
+        "多能工培养"
+      ],
+      "sections": 5
+    },
+    {
+      "docId": "mfg-changeover",
+      "title": "总装产线换型作业标准",
+      "domain": "manufacturing",
+      "topics": [
+        "变更管理",
+        "首件确认",
+        "换型效率"
+      ],
+      "sections": 5
+    },
+    {
+      "docId": "mfg-oee",
+      "title": "OEE 指标口径与取数规则",
+      "domain": "manufacturing",
+      "topics": [
+        "指标口径",
+        "设备可用率",
+        "事故复盘"
+      ],
+      "sections": 5
+    },
+    {
+      "docId": "qa-audit",
+      "title": "年度内部审核与整改管理",
+      "domain": "quality",
+      "topics": [
+        "内审机制",
+        "指标口径",
+        "变更管理"
+      ],
+      "sections": 5
+    },
+    {
+      "docId": "qa-ncr",
+      "title": "不合格品处置与 8D 闭环规则",
+      "domain": "quality",
+      "topics": [
+        "不合格品处置",
+        "事故复盘",
+        "纠正措施"
+      ],
+      "sections": 5
+    },
+    {
+      "docId": "sec-classification",
+      "title": "数据分级与留存销毁规范",
+      "domain": "security",
+      "topics": [
+        "数据留存",
+        "数据分级",
+        "权限复核"
+      ],
+      "sections": 5
+    },
+    {
+      "docId": "sec-incident",
+      "title": "安全事件分级与响应处置",
+      "domain": "security",
+      "topics": [
+        "事件响应",
+        "事故复盘",
+        "数据留存"
+      ],
+      "sections": 5
+    },
+    {
+      "docId": "sup-inventory",
+      "title": "安全库存设定与缺料响应",
+      "domain": "supply",
+      "topics": [
+        "安全库存",
+        "缺料响应",
+        "供应商准入"
+      ],
+      "sections": 5
+    },
+    {
+      "docId": "sup-onboarding",
+      "title": "新供应商准入与分级管理",
+      "domain": "supply",
+      "topics": [
+        "供应商准入",
+        "供应商分级",
+        "现场审核"
+      ],
+      "sections": 5
+    }
+  ]
+}
